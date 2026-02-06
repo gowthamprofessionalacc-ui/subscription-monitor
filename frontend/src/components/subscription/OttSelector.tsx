@@ -33,8 +33,8 @@ export const OttSelector: React.FC<OttSelectorProps> = ({
             }`}
             style={{
               background: isSelected ? theme.gradient : 'rgba(31, 41, 55, 0.5)',
-              ringColor: theme.primaryColor,
-            }}
+              '--tw-ring-color': theme.primaryColor,
+            } as React.CSSProperties}
           >
             <OttIcon
               name={ott.name}

@@ -38,7 +38,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
 
   // Password validation
-  const passwordErrors = [];
+  const passwordErrors: string[] = [];
   if (password.length > 0 && password.length < 8) passwordErrors.push('At least 8 characters');
   if (password.length > 0 && !/[A-Z]/.test(password)) passwordErrors.push('One uppercase letter');
   if (password.length > 0 && !/[0-9]/.test(password)) passwordErrors.push('One number');
