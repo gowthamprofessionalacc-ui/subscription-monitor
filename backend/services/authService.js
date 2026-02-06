@@ -246,7 +246,7 @@ class AuthService {
                 userId: user.id, 
                 email: user.email 
             },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || 'SubTracker2026SecureJWTKey!@#$%SecretToken',
             { expiresIn: '7d' }
         );
     }
