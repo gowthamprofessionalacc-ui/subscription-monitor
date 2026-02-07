@@ -34,10 +34,35 @@ const errorHandler = (err, req, res, next) => {
         });
     }
     
+    // Custom validation/business logic errors (from our services)
+    const validationMessages = [
+        'Email already registered',
+        'Username already taken',
+        'Phone number already registered',
+        'Invalid credentials',
+        'User not found',
+        'Invalid password',
+        'Renewal date must be',
+        'You already have a subscription',
+        'Subscription not found',
+        'Google authentication'
+    ];
+    
+    const isValidationError = validationMessages.some(msg => 
+        err.message && err.message.includes(msg)
+    );
+    
+    if (isValidationError) {
+        return res.status(400).json({
+            error: 'Validation error',
+            message: err.message
+        });
+    }
+    
     // Default error
     res.status(err.status || 500).json({
         error: 'Server error',
-        message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+        message: err.message || 'Something went wrong'
     });
 };
 
