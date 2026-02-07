@@ -31,6 +31,19 @@ class AuthService {
             throw new Error('Username already taken');
         }
         
+        // Check if phone number exists (if provided)
+        if (phoneNumber) {
+            const { data: existingPhone } = await supabaseAdmin
+                .from('users')
+                .select('id')
+                .eq('phone_number', phoneNumber)
+                .single();
+            
+            if (existingPhone) {
+                throw new Error('Phone number already registered');
+            }
+        }
+        
         // Hash password
         const passwordHash = await bcrypt.hash(password, 12);
         
@@ -68,24 +81,47 @@ class AuthService {
     }
     
     // =============================================
-    // LOGIN WITH EMAIL
+    // LOGIN WITH EMAIL (kept for backward compatibility)
     // =============================================
     async loginWithEmail(email, password) {
-        const { data: user, error } = await supabaseAdmin
+        return this.loginWithIdentifier(email, password);
+    }
+    
+    // =============================================
+    // LOGIN WITH IDENTIFIER (email, phone, or username)
+    // =============================================
+    async loginWithIdentifier(identifier, password) {
+        // Detect identifier type and find user
+        const identifierType = this.detectIdentifierType(identifier);
+        
+        let query = supabaseAdmin
             .from('users')
             .select('*')
-            .eq('email', email)
-            .eq('auth_provider', 'email')
-            .single();
+            .eq('auth_provider', 'email');
+        
+        // Add condition based on identifier type
+        if (identifierType === 'email') {
+            query = query.eq('email', identifier);
+        } else if (identifierType === 'phone') {
+            query = query.eq('phone_number', identifier);
+        } else {
+            query = query.eq('username', identifier);
+        }
+        
+        const { data: user, error } = await query.single();
         
         if (error || !user) {
-            throw new Error('Invalid email or password');
+            throw new Error('Invalid credentials. User not found.');
+        }
+        
+        if (!user.password_hash) {
+            throw new Error('This account uses Google authentication. Please login with Google.');
         }
         
         const isValidPassword = await bcrypt.compare(password, user.password_hash);
         
         if (!isValidPassword) {
-            throw new Error('Invalid email or password');
+            throw new Error('Invalid password');
         }
         
         const token = this.generateToken(user);
@@ -94,6 +130,23 @@ class AuthService {
             user: this.sanitizeUser(user),
             token
         };
+    }
+    
+    // =============================================
+    // DETECT IDENTIFIER TYPE
+    // =============================================
+    detectIdentifierType(identifier) {
+        // Email: contains @
+        if (identifier.includes('@')) {
+            return 'email';
+        }
+        // Phone: starts with + or contains only digits (with optional spaces/dashes)
+        const phonePattern = /^[\+]?[\d\s\-\(\)]{10,}$/;
+        if (phonePattern.test(identifier)) {
+            return 'phone';
+        }
+        // Default: username
+        return 'username';
     }
     
     // =============================================

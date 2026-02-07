@@ -6,6 +6,89 @@ const { getTheme } = require('../config/ottThemes');
 class SubscriptionService {
     
     // =============================================
+    // DATE VALIDATION HELPERS
+    // =============================================
+    getMinimumDaysForBillingCycle(billingCycle) {
+        const cycles = {
+            'monthly': 30,
+            'quarterly': 90,
+            'yearly': 365
+        };
+        return cycles[billingCycle] || 30;
+    }
+    
+    calculateRenewalDate(startDate, billingCycle) {
+        const start = new Date(startDate);
+        const minDays = this.getMinimumDaysForBillingCycle(billingCycle);
+        const renewal = new Date(start);
+        renewal.setDate(renewal.getDate() + minDays);
+        return renewal.toISOString().split('T')[0];
+    }
+    
+    validateSubscriptionDates(startDate, renewalDate, billingCycle) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const start = new Date(startDate);
+        const renewal = new Date(renewalDate);
+        
+        // Rule 1: Renewal date must be in the future
+        if (renewal <= today) {
+            throw new Error('Renewal date must be in the future');
+        }
+        
+        // Rule 2: Minimum gap based on billing cycle
+        const minDays = this.getMinimumDaysForBillingCycle(billingCycle);
+        const diffTime = renewal - start;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < minDays) {
+            const cycleNames = {
+                'monthly': 'monthly',
+                'quarterly': 'quarterly', 
+                'yearly': 'yearly'
+            };
+            const cycleName = cycleNames[billingCycle] || 'monthly';
+            throw new Error(`Renewal date must be at least ${minDays} days after start date for ${cycleName} billing`);
+        }
+        
+        return true;
+    }
+    
+    // =============================================
+    // DUPLICATE SUBSCRIPTION CHECK
+    // =============================================
+    async checkDuplicateSubscription(userId, ottCatalogId, name) {
+        // If predefined OTT (has ott_catalog_id), check by ott_catalog_id
+        if (ottCatalogId) {
+            const { data: existingById } = await supabaseAdmin
+                .from('subscriptions')
+                .select('id, name')
+                .eq('user_id', userId)
+                .eq('ott_catalog_id', ottCatalogId)
+                .single();
+            
+            if (existingById) {
+                throw new Error(`You already have a subscription for ${existingById.name}. Please edit the existing subscription or delete it first.`);
+            }
+        }
+        
+        // Also check by name (case-insensitive) to prevent duplicates
+        const { data: existingByName } = await supabaseAdmin
+            .from('subscriptions')
+            .select('id, name')
+            .eq('user_id', userId)
+            .ilike('name', name)
+            .single();
+        
+        if (existingByName) {
+            throw new Error(`You already have a subscription for ${existingByName.name}. Please edit the existing subscription or delete it first.`);
+        }
+        
+        return true;
+    }
+    
+    // =============================================
     // CREATE SUBSCRIPTION
     // =============================================
     async createSubscription(userId, subscriptionData) {
@@ -24,6 +107,21 @@ class SubscriptionService {
             is_seasonal
         } = subscriptionData;
         
+        // Check for duplicate subscription
+        await this.checkDuplicateSubscription(userId, ott_catalog_id, name);
+        
+        // Set default billing cycle
+        const finalBillingCycle = billing_cycle || 'monthly';
+        
+        // Set default start date if not provided
+        const finalStartDate = start_date || new Date().toISOString().split('T')[0];
+        
+        // Auto-calculate renewal date if not provided
+        const finalRenewalDate = renewal_date || this.calculateRenewalDate(finalStartDate, finalBillingCycle);
+        
+        // Validate dates
+        this.validateSubscriptionDates(finalStartDate, finalRenewalDate, finalBillingCycle);
+        
         // Get theme info
         const theme = getTheme(name);
         
@@ -36,10 +134,10 @@ class SubscriptionService {
                 name,
                 category: category || 'streaming',
                 amount,
-                billing_cycle: billing_cycle || 'monthly',
+                billing_cycle: finalBillingCycle,
                 auto_renew: auto_renew !== false,
-                start_date: start_date || new Date().toISOString().split('T')[0],
-                renewal_date,
+                start_date: finalStartDate,
+                renewal_date: finalRenewalDate,
                 is_shared: is_shared || false,
                 shared_members_count: shared_members_count || 1,
                 is_critical: is_critical || false,
@@ -124,15 +222,31 @@ class SubscriptionService {
     // UPDATE SUBSCRIPTION
     // =============================================
     async updateSubscription(subscriptionId, userId, updateData) {
-        // Verify ownership
+        // Verify ownership and get existing data
         const { data: existing } = await supabaseAdmin
             .from('subscriptions')
-            .select('id')
+            .select('*')
             .eq('id', subscriptionId)
             .eq('user_id', userId)
             .single();
         
         if (!existing) throw new Error('Subscription not found');
+        
+        // If dates or billing_cycle are being updated, validate them
+        const finalStartDate = updateData.start_date || existing.start_date;
+        const finalBillingCycle = updateData.billing_cycle || existing.billing_cycle;
+        let finalRenewalDate = updateData.renewal_date || existing.renewal_date;
+        
+        // If billing_cycle changed but renewal_date not provided, recalculate
+        if (updateData.billing_cycle && !updateData.renewal_date) {
+            finalRenewalDate = this.calculateRenewalDate(finalStartDate, finalBillingCycle);
+            updateData.renewal_date = finalRenewalDate;
+        }
+        
+        // Validate dates if any date-related field is being updated
+        if (updateData.start_date || updateData.renewal_date || updateData.billing_cycle) {
+            this.validateSubscriptionDates(finalStartDate, finalRenewalDate, finalBillingCycle);
+        }
         
         const { data, error } = await supabaseAdmin
             .from('subscriptions')

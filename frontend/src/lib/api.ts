@@ -52,10 +52,10 @@ class ApiClient {
     });
   }
 
-  async login(email: string, password: string) {
+  async login(identifier: string, password: string) {
     return this.request('/auth/login', {
       method: 'POST',
-      body: { email, password },
+      body: { identifier, password },
     });
   }
 

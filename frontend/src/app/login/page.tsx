@@ -10,13 +10,13 @@ import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { FloatingLogos } from '@/components/ui/FloatingLogos';
-import { FaEnvelope, FaLock, FaGoogle } from 'react-icons/fa';
+import { FaUser, FaLock, FaGoogle } from 'react-icons/fa';
 import { AuthResponse } from '@/types';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuthStore();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -28,11 +28,11 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.login(email, password) as AuthResponse;
+      const response = await api.login(identifier, password) as AuthResponse;
       login(response.user, response.token);
       router.push('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid email or password');
+      setError(err instanceof Error ? err.message : 'Invalid credentials');
     } finally {
       setIsLoading(false);
     }
@@ -85,11 +85,11 @@ export default function LoginPage() {
           {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              icon={<FaEnvelope className="text-gray-500" />}
+              type="text"
+              placeholder="Email, Phone, or Username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              icon={<FaUser className="text-gray-500" />}
               required
             />
             <Input

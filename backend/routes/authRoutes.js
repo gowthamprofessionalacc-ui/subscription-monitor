@@ -20,16 +20,19 @@ router.post('/register', async (req, res, next) => {
     }
 });
 
-// Login with email
+// Login with email, phone, or username
 router.post('/login', async (req, res, next) => {
     try {
-        const { email, password } = req.body;
+        const { email, identifier, password } = req.body;
         
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Email and password are required' });
+        // Support both 'identifier' and 'email' for backward compatibility
+        const loginIdentifier = identifier || email;
+        
+        if (!loginIdentifier || !password) {
+            return res.status(400).json({ error: 'Email/Phone/Username and password are required' });
         }
         
-        const result = await authService.loginWithEmail(email, password);
+        const result = await authService.loginWithIdentifier(loginIdentifier, password);
         res.json(result);
     } catch (error) {
         next(error);
