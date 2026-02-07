@@ -10,36 +10,33 @@ class AuthService {
     // =============================================
     async registerWithEmail(name, username, email, password, phoneNumber = null) {
         // Check if email exists
-        const { data: existingEmail } = await supabaseAdmin
+        const { data: existingEmails } = await supabaseAdmin
             .from('users')
             .select('id')
-            .eq('email', email)
-            .single();
+            .eq('email', email);
         
-        if (existingEmail) {
+        if (existingEmails && existingEmails.length > 0) {
             throw new Error('Email already registered');
         }
         
         // Check if username exists
-        const { data: existingUsername } = await supabaseAdmin
+        const { data: existingUsernames } = await supabaseAdmin
             .from('users')
             .select('id')
-            .eq('username', username)
-            .single();
+            .eq('username', username);
         
-        if (existingUsername) {
+        if (existingUsernames && existingUsernames.length > 0) {
             throw new Error('Username already taken');
         }
         
         // Check if phone number exists (if provided)
         if (phoneNumber) {
-            const { data: existingPhone } = await supabaseAdmin
+            const { data: existingPhones } = await supabaseAdmin
                 .from('users')
                 .select('id')
-                .eq('phone_number', phoneNumber)
-                .single();
+                .eq('phone_number', phoneNumber);
             
-            if (existingPhone) {
+            if (existingPhones && existingPhones.length > 0) {
                 throw new Error('Phone number already registered');
             }
         }

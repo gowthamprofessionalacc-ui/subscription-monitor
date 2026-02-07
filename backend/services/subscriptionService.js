@@ -65,11 +65,10 @@ class SubscriptionService {
                 .from('subscriptions')
                 .select('id, name')
                 .eq('user_id', userId)
-                .eq('ott_catalog_id', ottCatalogId)
-                .single();
+                .eq('ott_catalog_id', ottCatalogId);
             
-            if (existingById) {
-                throw new Error(`You already have a subscription for ${existingById.name}. Please edit the existing subscription or delete it first.`);
+            if (existingById && existingById.length > 0) {
+                throw new Error(`You already have a subscription for ${existingById[0].name}. Please edit the existing subscription or delete it first.`);
             }
         }
         
@@ -78,11 +77,10 @@ class SubscriptionService {
             .from('subscriptions')
             .select('id, name')
             .eq('user_id', userId)
-            .ilike('name', name)
-            .single();
+            .ilike('name', name);
         
-        if (existingByName) {
-            throw new Error(`You already have a subscription for ${existingByName.name}. Please edit the existing subscription or delete it first.`);
+        if (existingByName && existingByName.length > 0) {
+            throw new Error(`You already have a subscription for ${existingByName[0].name}. Please edit the existing subscription or delete it first.`);
         }
         
         return true;
