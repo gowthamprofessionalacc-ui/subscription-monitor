@@ -13,8 +13,11 @@ export const Input: React.FC<InputProps> = ({
   error,
   icon,
   className = '',
+  type,
   ...props
 }) => {
+  const isDateInput = type === 'date';
+  
   return (
     <div className="w-full">
       {label && (
@@ -29,9 +32,10 @@ export const Input: React.FC<InputProps> = ({
           </div>
         )}
         <input
+          type={type}
           className={`w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all ${
             icon ? 'pl-10' : ''
-          } ${error ? 'border-red-500' : ''} ${className}`}
+          } ${error ? 'border-red-500' : ''} ${isDateInput ? 'date-input-fix' : ''} ${className}`}
           {...props}
         />
       </div>

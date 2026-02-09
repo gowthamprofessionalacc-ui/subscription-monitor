@@ -61,6 +61,9 @@ export default function AddSubscriptionPage() {
   const [showHelp, setShowHelp] = useState(false);
 
   const isFirstTime = subscriptions.length === 0;
+  
+  // Get today's date in YYYY-MM-DD format for max date validation
+  const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     if (!isAuthenticated || !token) {
@@ -106,6 +109,15 @@ export default function AddSubscriptionPage() {
     // Validation
     if (!name || !amount || !startDate) {
       setError('Please fill all required fields');
+      return;
+    }
+
+    // Validate start date is not in the future
+    const selectedStartDate = new Date(startDate);
+    const todayDate = new Date();
+    todayDate.setHours(0, 0, 0, 0);
+    if (selectedStartDate > todayDate) {
+      setError('Start date cannot be in the future');
       return;
     }
 
@@ -255,6 +267,7 @@ export default function AddSubscriptionPage() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+              max={today}
               required
             />
             <Input

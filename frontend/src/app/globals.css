@@ -135,3 +135,36 @@ body {
   border-radius: 20px;
   border-bottom-right-radius: 4px;
 }
+
+/* Date input fix for mobile PWA */
+.date-input-fix {
+  color-scheme: dark;
+}
+
+.date-input-fix::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+.date-input-fix::-webkit-datetime-edit {
+  color: white;
+}
+
+.date-input-fix::-webkit-datetime-edit-fields-wrapper {
+  color: white;
+}
+
+.date-input-fix::-webkit-datetime-edit-text {
+  color: #9ca3af;
+}
+
+.date-input-fix::-webkit-datetime-edit-month-field,
+.date-input-fix::-webkit-datetime-edit-day-field,
+.date-input-fix::-webkit-datetime-edit-year-field {
+  color: white;
+}
+
+/* Placeholder style when no date is selected */
+.date-input-fix:not(:valid)::-webkit-datetime-edit {
+  color: #6b7280;
+}
